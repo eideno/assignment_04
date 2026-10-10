@@ -38,3 +38,49 @@ Test it: pytest tests/test_pipeline.py -k app
 #
 # What the page does NOT do: arithmetic on rows, cleaning, merging. If you find
 # yourself writing a loop or an apply here, that logic belongs in the package.
+
+import streamlit as st
+from payroll import load_employees, load_timesheet, build_payroll, payroll_export
+
+st.title("Salt City Coffee — Weekly Payroll")
+st.write("Upload the week's timesheet and get payroll and the provider CSV.")
+
+roster = load_employees()
+upload = st.file_uploader("Upload the week's timesheet", type="csv", key="timesheet")
+
+if upload is not None:
+    timesheet = load_timesheet(upload)
+    payroll = build_payroll(timesheet, roster)
+
+    payroll_date = payroll['payroll_date'].iloc[0]
+    st.subheader(f"Pay Period: {payroll_date}")
+
+    payable = payroll[payroll['pay_type'] != 'unmatched']
+    overtime = payroll[payroll['pay_type'] == 'overtime']
+
+    total_hours = payroll["hours_worked"].sum()
+    total_pay = payable['gross_pay'].sum()
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Employees paid", len(payable))
+    c2.metric("Total hours", total_hours)
+    c3.metric("Total gross pay", f"${total_pay:,.2f}")
+    c4.metric("Overtime weeks", len(overtime))
+
+    unmatched = payroll[payroll['pay_type'] == 'unmatched']
+    if len(unmatched) > 0:
+        ids = ", ".join(unmatched['employee_id'])
+        st.warning(f"Unmatched employee_ids: {ids}")
+    else:
+        st.success("All employee_ids matched.")
+
+    st.dataframe(payroll)
+
+    export = payroll_export(payroll)
+    st.download_button(
+        "Download payroll CSV for provider",
+        data=export.to_csv(index=False),
+        file_name=f"payroll_{payroll_date}.csv",
+        mime="text/csv",
+        key="download"
+    )
