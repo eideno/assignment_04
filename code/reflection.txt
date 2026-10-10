@@ -1,6 +1,13 @@
-Write your reflection here.
-
-See reflection.md for what makes a good reflection — be specific, use the
-terminology from this assignment (lineage, grain, element function, Series.apply,
-row apply / axis=1, left merge, NaN, coerce, copy-add-return, boolean index,
-export), and make it actionable.
+In Assignment 04, we had to build a Python payroll processing pipeline and Streamlit app to handle messy real-world time-tracking data. 
+Maintaining data lineage using the copy-add-return pattern with out = timesheet.copy() and 
+a Series.apply call for the element function (out["hours_worked"] = out["hours"].apply(parse_hours)) successfully coerced unreadable strings into 0.0. 
+Reconciling different file grains clicked when I used pd.merge(timesheet, employees, how="left", on="employee_id") for a left merge, 
+ensuring every timesheet row survived even when missing roster entries returned NaN instead of dropping employee E099. 
+For calculations, I used row apply with axis=1 via out.apply(lambda row: calc_gross_pay(...), axis=1), 
+but I initially stumbled with boolean indexing when I wrote payroll['payable'] 
+like a filter and hit a KeyError before learning that brackets with a column name return a column while a condition returns rows. 
+I also hit a snag where my total hours showed 221.75 instead of 241.75 because I summed only payable rows, 
+which incorrectly dropped E099's 20 hours since unmatched rows pay $0 but still represent real work. T
+he provider export then used a boolean index to keep only payable rows. 
+Moving forward, I would like to practice distinguishing between raw series and 
+filtered subsets (df["col"] versus df[condition]) to prevent these filter and total bugs.
